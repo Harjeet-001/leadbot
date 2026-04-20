@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LeadBot Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c27;
+      --border: #2a2a3a;
+      --accent: #4f6ef7;
+      --accent-glow: rgba(79,110,247,0.3);
+      --green: #22c55e;
+      --text: #e8e8f0;
+      --muted: #6b6b80;
+      --font: 'DM Sans', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* Login Screen */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at 50% 0%, rgba(79,110,247,0.12) 0%, transparent 60%);
+    }
+
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 48px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 0 60px rgba(0,0,0,0.5);
+    }
+
+    .login-logo {
+      width: 48px; height: 48px;
+      background: var(--accent);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 24px;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .login-logo svg { width: 24px; height: 24px; fill: white; }
+
+    .login-card h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+    .login-card p { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+    .field input {
+      width: 100%; padding: 12px 16px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-family: var(--font); font-size: 14px;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+    .btn {
+      width: 100%; padding: 13px;
+      background: var(--accent); color: white;
+      border: none; border-radius: 10px;
+      font-family: var(--font); font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s, transform 0.1s;
+      margin-top: 8px;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn:active { transform: scale(0.98); }
+
+    .error-msg {
+      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+      color: #f87171; padding: 10px 14px; border-radius: 8px;
+      font-size: 13px; margin-top: 16px; display: none;
+    }
+
+    /* Dashboard */
+    #dashboard { display: none; }
+
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 10;
+    }
+
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+
+    .logo-mark {
+      width: 32px; height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-mark svg { width: 16px; height: 16px; fill: white; }
+
+    .topbar h2 { font-size: 16px; font-weight: 600; }
+
+    .business-badge {
+      background: var(--surface2); border: 1px solid var(--border);
+      padding: 4px 12px; border-radius: 20px;
+      font-size: 13px; color: var(--muted);
+    }
+
+    .logout-btn {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); padding: 6px 14px; border-radius: 8px;
+      font-family: var(--font); font-size: 13px; cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .logout-btn:hover { border-color: var(--text); color: var(--text); }
+
+    .main { padding: 32px; max-width: 1100px; margin: 0 auto; }
+
+    /* Stats */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px;
+    }
+    .stat-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+    .stat-value { font-size: 36px; font-weight: 700; font-family: var(--mono); }
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.green { color: var(--green); }
+
+    /* Widget embed section */
+    .embed-section {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px; margin-bottom: 32px;
+    }
+    .section-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .section-sub { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+
+    .code-block {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px;
+      font-family: var(--mono); font-size: 13px; color: #a5b4fc;
+      word-break: break-all; position: relative;
+    }
+
+    .copy-btn {
+      position: absolute; top: 10px; right: 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--muted); padding: 4px 10px; border-radius: 6px;
+      font-family: var(--font); font-size: 12px; cursor: pointer;
+      transition: color 0.2s;
+    }
+    .copy-btn:hover { color: var(--text); }
+    .copy-btn.copied { color: var(--green); border-color: var(--green); }
+
+    /* Leads table */
+    .leads-section {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+    }
+
+    .leads-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .live-dot {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; color: var(--green);
+    }
+    .live-dot::before {
+      content: ''; width: 8px; height: 8px;
+      background: var(--green); border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left; padding: 12px 24px;
+      font-size: 12px; font-weight: 500; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.05em;
+      background: var(--surface2); border-bottom: 1px solid var(--border);
+    }
+    td { padding: 16px 24px; font-size: 14px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface2); }
+
+    .wa-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3);
+      color: var(--green); padding: 4px 10px; border-radius: 6px;
+      text-decoration: none; font-size: 13px; font-weight: 500;
+      transition: background 0.2s;
+    }
+    .wa-link:hover { background: rgba(34,197,94,0.2); }
+
+    .empty-state {
+      text-align: center; padding: 60px 24px; color: var(--muted);
+    }
+    .empty-state p { margin-top: 8px; font-size: 14px; }
+
+    .loading { text-align: center; padding: 48px; color: var(--muted); }
+
+    .refresh-btn {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); padding: 6px 14px; border-radius: 8px;
+      font-family: var(--font); font-size: 13px; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    @media (max-width: 640px) {
+      .stats { grid-template-columns: 1fr; }
+      .main { padding: 16px; }
+      .topbar { padding: 0 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+    </div>
+    <h1>LeadBot</h1>
+    <p>Sign in to view your captured leads</p>
+    <div class="field">
+      <label>Widget Key</label>
+      <input id="widget-key-input" type="text" placeholder="your-widget-key" />
+    </div>
+    <div class="field">
+      <label>Dashboard Secret</label>
+      <input id="secret-input" type="password" placeholder="••••••••" />
+    </div>
+    <button class="btn" onclick="login()">View My Leads →</button>
+    <div class="error-msg" id="login-error">Invalid credentials. Please check your widget key and secret.</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+      </div>
+      <h2>LeadBot</h2>
+      <span class="business-badge" id="business-name">Loading...</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="refresh-btn" onclick="loadLeads()">↻ Refresh</button>
+      <button class="logout-btn" onclick="logout()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">Total Leads</div>
+        <div class="stat-value accent" id="stat-total">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">This Week</div>
+        <div class="stat-value green" id="stat-week">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Today</div>
+        <div class="stat-value" id="stat-today">—</div>
+      </div>
+    </div>
+
+    <!-- Embed Code -->
+    <div class="embed-section">
+      <div class="section-title">📋 Your Embed Code</div>
+      <div class="section-sub">Paste this one line into any website's &lt;body&gt; tag. That's it.</div>
+      <div class="code-block" id="embed-code-block">
+        <span id="embed-code">Loading...</span>
+        <button class="copy-btn" id="copy-btn" onclick="copyEmbed()">Copy</button>
+      </div>
+    </div>
+
+    <!-- Leads Table -->
+    <div class="leads-section">
+      <div class="leads-header">
+        <div>
+          <div class="section-title">Captured Leads</div>
+        </div>
+        <div class="live-dot">Live</div>
+      </div>
+      <div id="leads-container">
+        <div class="loading">Loading your leads...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // CONFIG — change this to your deployed Cloudflare Worker URL
+  const BACKEND = 'https://leadbot-backend.harjeetgowda644.workers.dev';
+
+  let currentWidgetKey = '';
+  let currentSecret = '';
+
+  async function login() {
+    const widgetKey = document.getElementById('widget-key-input').value.trim();
+    const secret = document.getElementById('secret-input').value.trim();
+    const errorEl = document.getElementById('login-error');
+    errorEl.style.display = 'none';
+
+    if (!widgetKey || !secret) {
+      errorEl.style.display = 'block';
+      errorEl.textContent = 'Please fill in both fields.';
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BACKEND}/api/leads?widgetKey=${widgetKey}&secret=${secret}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      currentWidgetKey = widgetKey;
+      currentSecret = secret;
+      localStorage.setItem('lb_key', widgetKey);
+      localStorage.setItem('lb_secret', secret);
+
+      showDashboard(data);
+    } catch (e) {
+      errorEl.style.display = 'block';
+      errorEl.textContent = 'Connection error. Is the backend deployed?';
+    }
+  }
+
+  function showDashboard(data) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('business-name').textContent = data.business || 'Your Business';
+
+    // Embed code
+    const embedCode = `<script src="${BACKEND}/api/widget.js?key=${currentWidgetKey}"><\/script>`;
+    document.getElementById('embed-code').textContent = embedCode;
+
+    renderLeads(data.leads || []);
+  }
+
+  function renderLeads(leads) {
+    const container = document.getElementById('leads-container');
+
+    // Stats
+    const now = new Date();
+    const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    const todayStr = now.toISOString().split('T')[0];
+
+    const thisWeek = leads.filter(l => new Date(l.created_at) >= weekAgo).length;
+    const today = leads.filter(l => l.created_at.startsWith(todayStr)).length;
+
+    document.getElementById('stat-total').textContent = leads.length;
+    document.getElementById('stat-week').textContent = thisWeek;
+    document.getElementById('stat-today').textContent = today;
+
+    if (leads.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div style="font-size:40px;">🎯</div>
+          <p>No leads yet. Embed the widget on a website to start capturing.</p>
+        </div>`;
+      return;
+    }
+
+    const rows = leads.map(lead => {
+      const wa = lead.whatsapp ? lead.whatsapp.replace(/\D/g, '') : '';
+      const date = new Date(lead.created_at).toLocaleString('en-IN', {
+        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+      });
+      return `
+        <tr>
+          <td><strong>${lead.visitor_name || '—'}</strong></td>
+          <td>${lead.need || '—'}</td>
+          <td>
+            ${wa
+              ? `<a class="wa-link" href="https://wa.me/91${wa}" target="_blank">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                  ${lead.whatsapp}
+                </a>`
+              : '—'}
+          </td>
+          <td style="color:var(--muted);font-size:13px;">${date}</td>
+        </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Looking For</th>
+            <th>WhatsApp</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  async function loadLeads() {
+    if (!currentWidgetKey) return;
+    const res = await fetch(`${BACKEND}/api/leads?widgetKey=${currentWidgetKey}&secret=${currentSecret}`);
+    const data = await res.json();
+    if (data.leads) {
+      document.getElementById('business-name').textContent = data.business;
+      renderLeads(data.leads);
+    }
+  }
+
+  function copyEmbed() {
+    const text = document.getElementById('embed-code').textContent;
+    navigator.clipboard.writeText(text);
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  }
+
+  function logout() {
+    localStorage.removeItem('lb_key');
+    localStorage.removeItem('lb_secret');
+    currentWidgetKey = '';
+    currentSecret = '';
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+
+  // Auto-login if saved
+  window.addEventListener('load', () => {
+    const key = localStorage.getItem('lb_key');
+    const secret = localStorage.getItem('lb_secret');
+    if (key && secret) {
+      document.getElementById('widget-key-input').value = key;
+      document.getElementById('secret-input').value = secret;
+      login();
+    }
+  });
+
+  // Auto-refresh every 60 seconds
+  setInterval(loadLeads, 60000);
+</script>
+</body>
+</html>

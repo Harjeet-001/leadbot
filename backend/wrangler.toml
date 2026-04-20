@@ -1,0 +1,9 @@
+name = "leadbot-backend"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "leadbot-db"
+database_id = "3ef3f305-df81-4210-aebf-514239e47032"

@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LeadBot Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;
+      --border:#2a2a3a;--accent:#4f6ef7;--accent-glow:rgba(79,110,247,0.25);
+      --green:#22c55e;--red:#ef4444;--text:#e8e8f0;--muted:#6b6b80;
+      --font:'DM Sans',sans-serif;--mono:'JetBrains Mono',monospace;
+    }
+    body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;}
+
+    /* LOGIN */
+    #login{min-height:100vh;display:flex;align-items:center;justify-content:center;
+      background:radial-gradient(ellipse at 50% 0%,rgba(79,110,247,0.1) 0%,transparent 60%);}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;
+      padding:48px;width:100%;max-width:420px;box-shadow:0 0 60px rgba(0,0,0,0.5);}
+    .logo{width:48px;height:48px;background:var(--accent);border-radius:12px;
+      display:flex;align-items:center;justify-content:center;margin-bottom:24px;
+      box-shadow:0 0 24px var(--accent-glow);}
+    .logo svg{width:24px;height:24px;fill:white;}
+    .card h1{font-size:24px;font-weight:700;margin-bottom:4px;}
+    .card>p{color:var(--muted);font-size:14px;margin-bottom:32px;}
+    .field{margin-bottom:16px;}
+    .field label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin-bottom:6px;}
+    .field input,.field textarea,.field select{
+      width:100%;padding:12px 16px;background:var(--surface2);
+      border:1px solid var(--border);border-radius:10px;color:var(--text);
+      font-family:var(--font);font-size:14px;outline:none;
+      transition:border-color 0.2s,box-shadow 0.2s;resize:vertical;}
+    .field input:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+    .field textarea{min-height:120px;line-height:1.6;}
+    .btn{width:100%;padding:13px;background:var(--accent);color:white;border:none;
+      border-radius:10px;font-family:var(--font);font-size:15px;font-weight:600;
+      cursor:pointer;margin-top:8px;transition:opacity 0.2s,transform 0.1s;}
+    .btn:hover{opacity:0.9;} .btn:active{transform:scale(0.98);}
+    .btn-sm{width:auto;padding:8px 16px;font-size:13px;margin-top:0;border-radius:8px;}
+    .btn-danger{background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3);}
+    .btn-danger:hover{background:rgba(239,68,68,0.25);}
+    .btn-green{background:var(--green);}
+    .err{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);
+      color:#f87171;padding:10px 14px;border-radius:8px;font-size:13px;
+      margin-top:16px;display:none;}
+
+    /* ADMIN DASHBOARD */
+    #admin{display:none;}
+    .topbar{background:var(--surface);border-bottom:1px solid var(--border);
+      padding:0 32px;height:60px;display:flex;align-items:center;
+      justify-content:space-between;position:sticky;top:0;z-index:10;}
+    .tl{display:flex;align-items:center;gap:12px;}
+    .lm{width:32px;height:32px;background:var(--accent);border-radius:8px;
+      display:flex;align-items:center;justify-content:center;}
+    .lm svg{width:16px;height:16px;fill:white;}
+    .topbar h2{font-size:16px;font-weight:600;}
+    .admin-badge{background:rgba(79,110,247,0.15);border:1px solid rgba(79,110,247,0.3);
+      color:var(--accent);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;}
+    .ghost-btn{background:transparent;border:1px solid var(--border);color:var(--muted);
+      padding:6px 14px;border-radius:8px;font-family:var(--font);font-size:13px;
+      cursor:pointer;transition:all 0.2s;}
+    .ghost-btn:hover{border-color:var(--text);color:var(--text);}
+
+    .main{padding:32px;max-width:1200px;margin:0 auto;}
+
+    /* Stats bar */
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px;}
+    .stat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;}
+    .stat-label{font-size:13px;color:var(--muted);margin-bottom:8px;}
+    .stat-val{font-size:36px;font-weight:700;font-family:var(--mono);color:var(--accent);}
+
+    /* Two column layout */
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;}
+
+    /* Panel */
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+    .panel-head{padding:20px 24px;border-bottom:1px solid var(--border);
+      display:flex;align-items:center;justify-content:space-between;}
+    .panel-head h3{font-size:15px;font-weight:600;}
+    .panel-body{padding:24px;}
+
+    /* Add client form */
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+    /* Key display */
+    .key-display{background:var(--surface2);border:1px solid var(--border);
+      border-radius:10px;padding:16px;margin-top:16px;display:none;}
+    .key-display p{font-size:13px;color:var(--muted);margin-bottom:8px;}
+    .key-code{font-family:var(--mono);font-size:13px;color:#a5b4fc;
+      word-break:break-all;background:var(--bg);padding:12px;border-radius:8px;
+      border:1px solid var(--border);position:relative;}
+    .copy-inline{position:absolute;top:8px;right:8px;background:var(--surface);
+      border:1px solid var(--border);color:var(--muted);padding:3px 8px;
+      border-radius:5px;font-family:var(--font);font-size:11px;cursor:pointer;}
+    .copy-inline:hover{color:var(--text);}
+    .copy-inline.ok{color:var(--green);border-color:var(--green);}
+
+    /* Clients table */
+    .clients-table{width:100%;border-collapse:collapse;}
+    .clients-table th{text-align:left;padding:10px 16px;font-size:12px;font-weight:500;
+      color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;
+      background:var(--surface2);border-bottom:1px solid var(--border);}
+    .clients-table td{padding:14px 16px;font-size:14px;border-bottom:1px solid var(--border);}
+    .clients-table tr:last-child td{border-bottom:none;}
+    .clients-table tr:hover td{background:var(--surface2);}
+    .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;}
+    .status-dot.active{background:var(--green);}
+    .status-dot.inactive{background:var(--red);}
+
+    .empty{text-align:center;padding:40px;color:var(--muted);font-size:14px;}
+    .loading-txt{text-align:center;padding:32px;color:var(--muted);}
+
+    /* Notification */
+    .notif{position:fixed;top:24px;right:24px;background:var(--surface);
+      border:1px solid var(--border);border-radius:10px;padding:14px 20px;
+      font-size:14px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,0.4);
+      transform:translateY(-80px);opacity:0;transition:all 0.3s;z-index:999;}
+    .notif.show{transform:translateY(0);opacity:1;}
+    .notif.success{border-color:rgba(34,197,94,0.4);color:var(--green);}
+    .notif.error{border-color:rgba(239,68,68,0.4);color:var(--red);}
+
+    @media(max-width:768px){
+      .grid2{grid-template-columns:1fr;}
+      .form-row{grid-template-columns:1fr;}
+      .stats{grid-template-columns:1fr;}
+      .main{padding:16px;}
+      .topbar{padding:0 16px;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="card">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+    </div>
+    <h1>Admin Panel</h1>
+    <p>LeadBot — Business Management</p>
+    <div class="field">
+      <label>Admin Password</label>
+      <input id="pass-input" type="password" placeholder="••••••••" />
+    </div>
+    <button class="btn" onclick="adminLogin()">Enter Admin Panel →</button>
+    <div class="err" id="login-err">Wrong password.</div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="admin">
+  <div class="topbar">
+    <div class="tl">
+      <div class="lm"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>
+      <h2>LeadBot Admin</h2>
+      <span class="admin-badge">⚡ Admin</span>
+    </div>
+    <button class="ghost-btn" onclick="adminLogout()">Sign out</button>
+  </div>
+
+  <div class="main">
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat"><div class="stat-label">Total Clients</div><div class="stat-val" id="stat-clients">—</div></div>
+      <div class="stat"><div class="stat-label">Active Clients</div><div class="stat-val" id="stat-active">—</div></div>
+      <div class="stat"><div class="stat-label">Monthly Revenue</div><div class="stat-val" id="stat-revenue">—</div></div>
+    </div>
+
+    <div class="grid2">
+
+      <!-- Add Client Form -->
+      <div class="panel">
+        <div class="panel-head">
+          <h3>➕ Add New Client</h3>
+        </div>
+        <div class="panel-body">
+          <div class="form-row">
+            <div class="field">
+              <label>Business Name</label>
+              <input id="biz-name" type="text" placeholder="ABC Coaching Center"/>
+            </div>
+            <div class="field">
+              <label>Owner Email</label>
+              <input id="biz-email" type="email" placeholder="owner@business.com"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label>Monthly Plan (₹)</label>
+              <input id="biz-plan" type="number" placeholder="1499"/>
+            </div>
+            <div class="field">
+              <label>Website URL (optional)</label>
+              <input id="biz-url" type="text" placeholder="https://theirbusiness.com"/>
+            </div>
+          </div>
+          <div class="field">
+            <label>Business Description & Knowledge</label>
+            <textarea id="biz-desc" placeholder="Paste everything about the business here — services, prices, timings, FAQs, location, contact info. The bot will use this to answer visitor questions.
+
+Example:
+- We offer JEE and NEET coaching for grades 9-12
+- Fee: ₹15,000/year for full course
+- Located at 45 Anna Nagar, Coimbatore
+- Classes: Weekdays 4pm-7pm, Weekends 9am-1pm
+- Call us: 98765 43210
+- Free demo class available"></textarea>
+          </div>
+          <button class="btn btn-green" onclick="addClient()">Create Client & Generate Key</button>
+
+          <!-- Key display after creation -->
+          <div class="key-display" id="key-display">
+            <p>✅ Client created! Share these with them:</p>
+            <p style="font-size:13px;color:var(--muted);margin-bottom:6px;margin-top:12px;">Widget Embed Code:</p>
+            <div class="key-code" id="embed-result">
+              <button class="copy-inline" onclick="copyResult('embed-result', this)">Copy</button>
+            </div>
+            <p style="font-size:13px;color:var(--muted);margin-bottom:6px;margin-top:12px;">Client Dashboard Login:</p>
+            <div class="key-code" id="login-result">
+              <button class="copy-inline" onclick="copyResult('login-result', this)">Copy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GTM / Install Instructions -->
+      <div class="panel">
+        <div class="panel-head">
+          <h3>📋 How to Install for Clients</h3>
+        </div>
+        <div class="panel-body">
+          <p style="font-size:14px;color:var(--muted);margin-bottom:20px;">Choose the method based on what platform your client uses:</p>
+
+          <div style="margin-bottom:20px;">
+            <p style="font-size:14px;font-weight:600;margin-bottom:8px;">🟦 WordPress</p>
+            <p style="font-size:13px;color:var(--muted);line-height:1.6;">Go to their wp-admin → Appearance → Theme Editor → footer.php → paste the script tag just before <code style="color:#a5b4fc">&lt;/body&gt;</code></p>
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <p style="font-size:14px;font-weight:600;margin-bottom:8px;">🟨 Wix</p>
+            <p style="font-size:13px;color:var(--muted);line-height:1.6;">Settings → Custom Code → Add Code → paste script → set to "Body - end" → apply to all pages</p>
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <p style="font-size:14px;font-weight:600;margin-bottom:8px;">🟧 Squarespace</p>
+            <p style="font-size:13px;color:var(--muted);line-height:1.6;">Settings → Advanced → Code Injection → paste in Footer section</p>
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <p style="font-size:14px;font-weight:600;margin-bottom:8px;">🟩 Google Tag Manager</p>
+            <p style="font-size:13px;color:var(--muted);line-height:1.6;">New Tag → Custom HTML → paste script → Trigger: All Pages → Submit</p>
+          </div>
+
+          <div>
+            <p style="font-size:14px;font-weight:600;margin-bottom:8px;">🔵 Any HTML site</p>
+            <p style="font-size:13px;color:var(--muted);line-height:1.6;">Paste the script tag just before <code style="color:#a5b4fc">&lt;/body&gt;</code> in their main HTML file</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- All Clients -->
+    <div class="panel">
+      <div class="panel-head">
+        <h3>👥 All Clients</h3>
+        <button class="ghost-btn" onclick="loadClients()">↻ Refresh</button>
+      </div>
+      <div id="clients-container">
+        <div class="loading-txt">Loading clients...</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Notification -->
+<div class="notif" id="notif"></div>
+
+<script>
+  const BACKEND = 'https://leadbot-backend.harjeetgowda644.workers.dev';
+  const ADMIN_PASS = 'admin@harjeet2024';
+  const DASHBOARD_SECRET = 'leadbot2024';
+
+  function adminLogin() {
+    const pass = document.getElementById('pass-input').value;
+    const err = document.getElementById('login-err');
+    if (pass !== ADMIN_PASS) {
+      err.style.display = 'block';
+      return;
+    }
+    err.style.display = 'none';
+    sessionStorage.setItem('lb_admin', '1');
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('admin').style.display = 'block';
+    loadClients();
+  }
+
+  function adminLogout() {
+    sessionStorage.removeItem('lb_admin');
+    document.getElementById('admin').style.display = 'none';
+    document.getElementById('login').style.display = 'flex';
+    document.getElementById('pass-input').value = '';
+  }
+
+  function showNotif(msg, type = 'success') {
+    const n = document.getElementById('notif');
+    n.textContent = msg;
+    n.className = `notif ${type} show`;
+    setTimeout(() => n.classList.remove('show'), 3000);
+  }
+
+  function generateKey(name) {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').slice(0, 20);
+    const rand = Math.random().toString(36).slice(2, 7);
+    return `${slug}-${rand}`;
+  }
+
+  async function addClient() {
+    const name = document.getElementById('biz-name').value.trim();
+    const email = document.getElementById('biz-email').value.trim();
+    const desc = document.getElementById('biz-desc').value.trim();
+    const plan = document.getElementById('biz-plan').value.trim();
+    const url = document.getElementById('biz-url').value.trim();
+
+    if (!name || !email) {
+      showNotif('Business name and email are required', 'error');
+      return;
+    }
+
+    const widgetKey = generateKey(name);
+
+    try {
+      const res = await fetch(`${BACKEND}/api/admin/add-client`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminPass: ADMIN_PASS,
+          businessName: name,
+          businessEmail: email,
+          widgetKey,
+          description: desc,
+          plan: plan || '1499',
+          websiteUrl: url,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        showNotif(data.error || 'Failed to create client', 'error');
+        return;
+      }
+
+      // Show the generated codes
+      const embedCode = `<script src="${BACKEND}/api/widget.js?key=${widgetKey}"><\/script>`;
+      const loginInfo = `Dashboard: https://leadbot-phi.vercel.app\nWidget Key: ${widgetKey}\nSecret: ${DASHBOARD_SECRET}`;
+
+      document.getElementById('embed-result').innerHTML = embedCode +
+        `<button class="copy-inline" onclick="copyResult('embed-result',this)">Copy</button>`;
+      document.getElementById('login-result').innerHTML = loginInfo +
+        `<button class="copy-inline" onclick="copyResult('login-result',this)">Copy</button>`;
+      document.getElementById('key-display').style.display = 'block';
+
+      showNotif(`✅ ${name} added successfully!`);
+      loadClients();
+
+      // Clear form
+      document.getElementById('biz-name').value = '';
+      document.getElementById('biz-email').value = '';
+      document.getElementById('biz-desc').value = '';
+      document.getElementById('biz-plan').value = '';
+      document.getElementById('biz-url').value = '';
+
+    } catch(e) {
+      showNotif('Connection error', 'error');
+    }
+  }
+
+  async function loadClients() {
+    try {
+      const res = await fetch(`${BACKEND}/api/admin/clients`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminPass: ADMIN_PASS }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showNotif('Failed to load clients', 'error'); return; }
+
+      const clients = data.clients || [];
+      const active = clients.filter(c => c.active).length;
+      const revenue = active * 1499;
+
+      document.getElementById('stat-clients').textContent = clients.length;
+      document.getElementById('stat-active').textContent = active;
+      document.getElementById('stat-revenue').textContent = `₹${revenue.toLocaleString('en-IN')}`;
+
+      if (!clients.length) {
+        document.getElementById('clients-container').innerHTML =
+          '<div class="empty">No clients yet. Add your first client above.</div>';
+        return;
+      }
+
+      const rows = clients.map(c => `
+        <tr>
+          <td><strong>${c.business_name}</strong></td>
+          <td style="color:var(--muted);font-size:13px;">${c.business_email}</td>
+          <td><span class="status-dot ${c.active ? 'active' : 'inactive'}"></span>${c.active ? 'Active' : 'Inactive'}</td>
+          <td><code style="font-family:var(--mono);font-size:12px;color:#a5b4fc;">${c.widget_key}</code></td>
+          <td style="color:var(--muted);font-size:13px;">${new Date(c.created_at).toLocaleDateString('en-IN')}</td>
+          <td>
+            <button class="btn btn-sm btn-danger" onclick="toggleClient('${c.widget_key}', ${c.active})">
+              ${c.active ? 'Deactivate' : 'Activate'}
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      document.getElementById('clients-container').innerHTML = `
+        <table class="clients-table">
+          <thead><tr>
+            <th>Business</th><th>Email</th><th>Status</th>
+            <th>Widget Key</th><th>Added</th><th>Action</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+
+    } catch(e) {
+      showNotif('Connection error', 'error');
+    }
+  }
+
+  async function toggleClient(widgetKey, currentActive) {
+    const res = await fetch(`${BACKEND}/api/admin/toggle-client`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminPass: ADMIN_PASS, widgetKey, active: currentActive ? 0 : 1 }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showNotif(currentActive ? 'Client deactivated' : 'Client activated');
+      loadClients();
+    } else {
+      showNotif(data.error || 'Failed', 'error');
+    }
+  }
+
+  function copyResult(id, btn) {
+    const el = document.getElementById(id);
+    const text = el.childNodes[0].textContent.trim();
+    navigator.clipboard.writeText(text);
+    btn.textContent = 'Copied!';
+    btn.classList.add('ok');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('ok'); }, 2000);
+  }
+
+  // Auto login if session exists
+  window.addEventListener('load', () => {
+    if (sessionStorage.getItem('lb_admin')) {
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('admin').style.display = 'block';
+      loadClients();
+    }
+  });
+
+  // Enter key on password
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('login').style.display !== 'none') {
+      adminLogin();
+    }
+  });
+</script>
+</body>
+</html>

@@ -14,7 +14,6 @@ export async function handleAdmin(request, env, path) {
       return json({ error: 'businessName, businessEmail and widgetKey required' }, 400);
     }
 
-    // Check if email or key already exists
     const existing = await env.DB.prepare(
       'SELECT id FROM clients WHERE business_email = ? OR widget_key = ?'
     ).bind(businessEmail, widgetKey).first();
@@ -53,6 +52,27 @@ export async function handleAdmin(request, env, path) {
     await env.DB.prepare(
       'UPDATE clients SET active = ? WHERE widget_key = ?'
     ).bind(body.active, body.widgetKey).run();
+
+    return json({ success: true });
+  }
+
+  // POST /api/admin/edit-client
+  if (path === '/api/admin/edit-client' && request.method === 'POST') {
+    const body = await request.json();
+    if (body.adminPass !== ADMIN_PASS) return json({ error: 'Unauthorized' }, 401);
+
+    const { widgetKey, businessName, businessEmail, description, plan, websiteUrl } = body;
+    if (!widgetKey) return json({ error: 'widgetKey required' }, 400);
+
+    await env.DB.prepare(`
+      UPDATE clients 
+      SET business_name = ?, business_email = ?, description = ?, plan = ?, website_url = ?
+      WHERE widget_key = ?
+    `).bind(
+      businessName, businessEmail,
+      description || '', plan || '1499', websiteUrl || '',
+      widgetKey
+    ).run();
 
     return json({ success: true });
   }

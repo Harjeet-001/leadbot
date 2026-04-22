@@ -24,27 +24,32 @@ export async function handleChat(request, env) {
   const session = sessions.get(sessionId);
 
   const knowledge = client.description
-    ? `\n\nBUSINESS KNOWLEDGE BASE:\n${client.description}\n\nUse this information to answer any questions visitors have about the business. If asked something not in the knowledge base, say you'll have the team follow up.`
+    ? `\n\nBUSINESS KNOWLEDGE BASE:\n${client.description}\n\nUse this to answer visitor questions. If something is not in the knowledge base, say the team will follow up.`
     : '';
 
   const systemPrompt = `You are a friendly AI assistant for ${client.business_name}.${knowledge}
 
-Your goals in order:
-1. Greet the visitor warmly and ask what they are looking for
-2. Answer any questions they have about the business using the knowledge base above
-3. Once they seem interested, naturally ask for their name
-4. Ask for their WhatsApp number so the team can follow up
-5. Thank them and say the team will reach out within a few hours
+Follow these steps in order:
+1. Greet the visitor and ask what they are looking for
+2. Answer their questions using the knowledge base
+3. Ask for their NAME (only after engaging with them)
+4. Ask for their WHATSAPP NUMBER (only after you have their name)
+5. Once you have BOTH name AND WhatsApp number confirmed, thank them and say the team will reach out
 
-Rules:
-- Keep every message SHORT — 1 to 2 sentences max
-- Ask ONE question at a time only
-- Be warm and human, never robotic
-- Answer questions confidently using the knowledge base
-- Once you have BOTH their name AND WhatsApp number, add this at the very end of your message on a new line:
-  LEAD_CAPTURED:{"name":"THEIR_NAME","whatsapp":"THEIR_NUMBER","need":"WHAT_THEY_WANT"}
-- Never show the LEAD_CAPTURED tag to the user
-- Only add LEAD_CAPTURED once`;
+CRITICAL RULES:
+- Never add LEAD_CAPTURED until the visitor has explicitly given you BOTH their name AND their WhatsApp number in the conversation
+- The WhatsApp number must be a actual number (10 digits), not just mentioned in passing
+- Keep messages SHORT — 1 to 2 sentences max
+- Ask ONE question at a time
+- Be warm and human
+
+Once you have confirmed BOTH name AND WhatsApp number, add this on a new line at the END of your message:
+LEAD_CAPTURED:{"name":"THEIR_NAME","whatsapp":"THEIR_WHATSAPP_NUMBER","need":"WHAT_THEY_WANT"}
+
+NEVER add LEAD_CAPTURED if you only have a name but no WhatsApp number.
+NEVER add LEAD_CAPTURED if you only have a WhatsApp number but no name.
+NEVER show LEAD_CAPTURED to the user.
+Only add LEAD_CAPTURED once.`;
 
   session.messages.push({ role: 'user', content: message });
 
@@ -61,7 +66,7 @@ Rules:
         ...session.messages,
       ],
       max_tokens: 400,
-      temperature: 0.7,
+      temperature: 0.5,
     }),
   });
 
@@ -77,18 +82,21 @@ Rules:
   let leadCaptured = session.leadCaptured;
 
   if (leadMatch && !session.leadCaptured) {
-    session.leadCaptured = true;
-    leadCaptured = true;
     try {
       const leadData = JSON.parse(leadMatch[1]);
-      await env.DB.prepare(
-        'INSERT INTO leads (business_name, business_email, visitor_name, whatsapp, need, session_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      ).bind(
-        client.business_name, client.business_email,
-        leadData.name, leadData.whatsapp, leadData.need,
-        sessionId, new Date().toISOString()
-      ).run();
-      await sendEmail(BREVO_API_KEY, BREVO_SENDER_EMAIL, client, leadData);
+      // Double check both name and whatsapp exist before saving
+      if (leadData.name && leadData.whatsapp && leadData.whatsapp.replace(/\D/g,'').length >= 10) {
+        session.leadCaptured = true;
+        leadCaptured = true;
+        await env.DB.prepare(
+          'INSERT INTO leads (business_name, business_email, visitor_name, whatsapp, need, session_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        ).bind(
+          client.business_name, client.business_email,
+          leadData.name, leadData.whatsapp, leadData.need,
+          sessionId, new Date().toISOString()
+        ).run();
+        await sendEmail(BREVO_API_KEY, BREVO_SENDER_EMAIL, client, leadData);
+      }
     } catch (e) {
       console.error('Lead error:', e);
     }
@@ -115,11 +123,11 @@ async function sendEmail(BREVO_API_KEY, BREVO_SENDER_EMAIL, client, leadData) {
             <h2 style="color:white;margin:0;">🔥 New Lead Captured!</h2>
             <p style="color:#bfdbfe;margin:4px 0 0;">${client.business_name}</p>
           </div>
-          <p><strong>Name:</strong> ${leadData.name}</p>
-          <p><strong>WhatsApp:</strong> ${leadData.whatsapp}</p>
-          <p><strong>Looking for:</strong> ${leadData.need}</p>
-          <p><strong>Time:</strong> ${new Date().toLocaleString('en-IN')}</p>
-          <a href="https://wa.me/91${wa}" style="display:inline-block;margin-top:16px;padding:14px 28px;background:#25D366;color:white;text-decoration:none;border-radius:8px;font-weight:700;">💬 Reply on WhatsApp</a>
+          <p style="margin-bottom:8px;"><strong>Name:</strong> ${leadData.name}</p>
+          <p style="margin-bottom:8px;"><strong>WhatsApp:</strong> ${leadData.whatsapp}</p>
+          <p style="margin-bottom:8px;"><strong>Looking for:</strong> ${leadData.need}</p>
+          <p style="margin-bottom:24px;"><strong>Time:</strong> ${new Date().toLocaleString('en-IN')}</p>
+          <a href="https://wa.me/91${wa}" style="display:inline-block;padding:14px 28px;background:#25D366;color:white;text-decoration:none;border-radius:8px;font-weight:700;">💬 Reply on WhatsApp</a>
           <p style="margin-top:24px;color:#9ca3af;font-size:12px;">Powered by LeadBot 🚀</p>
         </div>
       `,

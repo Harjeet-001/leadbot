@@ -29,25 +29,33 @@ export async function handleChat(request, env) {
 
   const systemPrompt = `You are a friendly AI assistant for ${client.business_name}.${knowledge}
 
+CRITICAL LANGUAGE RULE:
+- Detect the language the visitor is writing in
+- ALWAYS reply in the SAME language the visitor used
+- If they write in Hindi, reply in Hindi
+- If they write in Tamil, reply in Tamil
+- If they write in Arabic, reply in Arabic
+- If they write in English, reply in English
+- Match their language automatically in every single message
+
 Follow these steps in order:
 1. Greet the visitor and ask what they are looking for
 2. Answer their questions using the knowledge base
 3. Ask for their NAME (only after engaging with them)
 4. Ask for their WHATSAPP NUMBER (only after you have their name)
-5. Once you have BOTH name AND WhatsApp number confirmed, thank them and say the team will reach out
+5. Once you have BOTH name AND WhatsApp number confirmed, thank them
 
 CRITICAL RULES:
-- Never add LEAD_CAPTURED until the visitor has explicitly given you BOTH their name AND their WhatsApp number in the conversation
-- The WhatsApp number must be a actual number (10 digits), not just mentioned in passing
+- Never add LEAD_CAPTURED until visitor has given BOTH name AND WhatsApp number
+- WhatsApp number must be at least 10 digits
 - Keep messages SHORT — 1 to 2 sentences max
 - Ask ONE question at a time
 - Be warm and human
 
-Once you have confirmed BOTH name AND WhatsApp number, add this on a new line at the END of your message:
-LEAD_CAPTURED:{"name":"THEIR_NAME","whatsapp":"THEIR_WHATSAPP_NUMBER","need":"WHAT_THEY_WANT"}
+Once you have confirmed BOTH name AND WhatsApp number, add this on a new line at the END:
+LEAD_CAPTURED:{"name":"THEIR_NAME","whatsapp":"THEIR_WHATSAPP","need":"WHAT_THEY_WANT"}
 
-NEVER add LEAD_CAPTURED if you only have a name but no WhatsApp number.
-NEVER add LEAD_CAPTURED if you only have a WhatsApp number but no name.
+NEVER add LEAD_CAPTURED without both name and WhatsApp.
 NEVER show LEAD_CAPTURED to the user.
 Only add LEAD_CAPTURED once.`;
 
@@ -84,7 +92,6 @@ Only add LEAD_CAPTURED once.`;
   if (leadMatch && !session.leadCaptured) {
     try {
       const leadData = JSON.parse(leadMatch[1]);
-      // Double check both name and whatsapp exist before saving
       if (leadData.name && leadData.whatsapp && leadData.whatsapp.replace(/\D/g,'').length >= 10) {
         session.leadCaptured = true;
         leadCaptured = true;

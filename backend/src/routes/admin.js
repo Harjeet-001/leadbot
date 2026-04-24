@@ -7,12 +7,12 @@ export async function handleAdmin(request, env, path) {
   if (path === '/api/admin/add-client' && request.method === 'POST') {
     const body = await request.json();
     if (body.adminPass !== ADMIN_PASS) return json({ error: 'Unauthorized' }, 401);
-    const { businessName, businessEmail, widgetKey, description, plan, websiteUrl, botName, themeColor, logoUrl } = body;
+    const { businessName, businessEmail, widgetKey, description, plan, websiteUrl, botName, themeColor, logoUrl, leadMode } = body;
     if (!businessName || !businessEmail || !widgetKey) return json({ error: 'Required fields missing' }, 400);
     const existing = await env.DB.prepare('SELECT id FROM clients WHERE business_email = ? OR widget_key = ?').bind(businessEmail, widgetKey).first();
     if (existing) return json({ error: 'Client with this email or key already exists' }, 409);
-    await env.DB.prepare(`INSERT INTO clients (business_name, business_email, widget_key, description, plan, website_url, bot_name, theme_color, logo_url, active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`)
-      .bind(businessName, businessEmail, widgetKey, description || '', plan || '1499', websiteUrl || '', botName || 'Assistant', themeColor || '#2563eb', logoUrl || '', new Date().toISOString()).run();
+    await env.DB.prepare(`INSERT INTO clients (business_name, business_email, widget_key, description, plan, website_url, bot_name, theme_color, logo_url, lead_mode, active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`)
+      .bind(businessName, businessEmail, widgetKey, description||'', plan||'1499', websiteUrl||'', botName||'Assistant', themeColor||'#2563eb', logoUrl||'', leadMode===false?0:1, new Date().toISOString()).run();
     return json({ success: true, widgetKey });
   }
 
@@ -33,10 +33,10 @@ export async function handleAdmin(request, env, path) {
   if (path === '/api/admin/edit-client' && request.method === 'POST') {
     const body = await request.json();
     if (body.adminPass !== ADMIN_PASS) return json({ error: 'Unauthorized' }, 401);
-    const { widgetKey, businessName, businessEmail, description, plan, websiteUrl, botName, themeColor, logoUrl } = body;
+    const { widgetKey, businessName, businessEmail, description, plan, websiteUrl, botName, themeColor, logoUrl, leadMode } = body;
     if (!widgetKey) return json({ error: 'widgetKey required' }, 400);
-    await env.DB.prepare(`UPDATE clients SET business_name=?, business_email=?, description=?, plan=?, website_url=?, bot_name=?, theme_color=?, logo_url=? WHERE widget_key=?`)
-      .bind(businessName, businessEmail, description || '', plan || '1499', websiteUrl || '', botName || 'Assistant', themeColor || '#2563eb', logoUrl || '', widgetKey).run();
+    await env.DB.prepare(`UPDATE clients SET business_name=?, business_email=?, description=?, plan=?, website_url=?, bot_name=?, theme_color=?, logo_url=?, lead_mode=? WHERE widget_key=?`)
+      .bind(businessName, businessEmail, description||'', plan||'1499', websiteUrl||'', botName||'Assistant', themeColor||'#2563eb', logoUrl||'', leadMode===false?0:1, widgetKey).run();
     return json({ success: true });
   }
 

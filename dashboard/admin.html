@@ -198,7 +198,18 @@
             <label>Business Description & Knowledge</label>
             <textarea id="biz-desc" placeholder="Paste everything about the business — services, prices, timings, FAQs, location. The bot uses this to answer questions."></textarea>
           </div>
-          <button class="btn btn-green" onclick="addClient()">Create Client & Generate Key</button>
+          <div class="section-label">⚙️ Bot Behaviour</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+            <div>
+              <div style="font-size:14px;font-weight:600;">Lead Collection Mode</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:3px;">ON = bot asks for name &amp; WhatsApp. OFF = bot only answers questions.</div>
+            </div>
+            <div style="flex-shrink:0;margin-left:16px;">
+              <input type="checkbox" id="biz-leadmode" checked style="width:18px;height:18px;cursor:pointer;accent-color:var(--green);"/>
+              <label for="biz-leadmode" style="font-size:13px;color:var(--muted);cursor:pointer;margin-left:4px;">Enabled</label>
+            </div>
+          </div>
+          <button class="btn btn-green" onclick="addClient()">Create Client &amp; Generate Key</button>
           <div class="key-display" id="key-display">
             <p>✅ Client created! Share these with them:</p>
             <p style="font-size:13px;color:var(--muted);margin-bottom:6px;margin-top:12px;">Widget Embed Code:</p>
@@ -254,6 +265,16 @@
         <div class="field"><label>Bot Name</label><input id="edit-botname" type="text" placeholder="Assistant"/></div>
         <div class="field"><label>Theme Color</label><input id="edit-color" type="color" value="#2563eb"/></div>
         <div class="field"><label>Logo URL</label><input id="edit-logo" type="text" placeholder="https://..."/></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+        <div>
+          <div style="font-size:14px;font-weight:600;">Lead Collection Mode</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px;">ON = bot asks for name &amp; WhatsApp. OFF = bot only answers questions.</div>
+        </div>
+        <div style="flex-shrink:0;margin-left:16px;">
+          <input type="checkbox" id="edit-leadmode" checked style="width:18px;height:18px;cursor:pointer;accent-color:var(--green);"/>
+          <label for="edit-leadmode" style="font-size:13px;color:var(--muted);cursor:pointer;margin-left:4px;">Enabled</label>
+        </div>
       </div>
       <div class="field">
         <label>Business Description & Knowledge</label>
@@ -313,12 +334,13 @@
     const botName = document.getElementById('biz-botname').value.trim() || 'Assistant';
     const themeColor = document.getElementById('biz-color').value;
     const logoUrl = document.getElementById('biz-logo').value.trim();
+    const leadMode = document.getElementById('biz-leadmode').checked;
     if (!name || !email) { showNotif('Business name and email are required','error'); return; }
     const widgetKey = generateKey(name);
     try {
       const res = await fetch(`${BACKEND}/api/admin/add-client`,{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({adminPass:ADMIN_PASS,businessName:name,businessEmail:email,widgetKey,description:desc,plan:plan||'1499',websiteUrl:url,botName,themeColor,logoUrl})
+        body:JSON.stringify({adminPass:ADMIN_PASS,businessName:name,businessEmail:email,widgetKey,description:desc,plan:plan||'1499',websiteUrl:url,botName,themeColor,logoUrl,leadMode})
       });
       const data = await res.json();
       if (!res.ok) { showNotif(data.error||'Failed','error'); return; }
@@ -373,6 +395,7 @@
     document.getElementById('edit-botname').value=client.bot_name||'Assistant';
     document.getElementById('edit-color').value=client.theme_color||'#2563eb';
     document.getElementById('edit-logo').value=client.logo_url||'';
+    document.getElementById('edit-leadmode').checked=client.lead_mode!==0;
     document.getElementById('edit-modal').classList.add('open');
   }
 
@@ -388,9 +411,10 @@
     const botName=document.getElementById('edit-botname').value.trim()||'Assistant';
     const themeColor=document.getElementById('edit-color').value;
     const logoUrl=document.getElementById('edit-logo').value.trim();
+    const leadMode=document.getElementById('edit-leadmode').checked;
     if (!businessName||!businessEmail) { showNotif('Name and email required','error'); return; }
     try {
-      const res=await fetch(`${BACKEND}/api/admin/edit-client`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPass:ADMIN_PASS,widgetKey,businessName,businessEmail,description,plan,websiteUrl,botName,themeColor,logoUrl})});
+      const res=await fetch(`${BACKEND}/api/admin/edit-client`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPass:ADMIN_PASS,widgetKey,businessName,businessEmail,description,plan,websiteUrl,botName,themeColor,logoUrl,leadMode})});
       const data=await res.json();
       if (!res.ok) { showNotif(data.error||'Failed','error'); return; }
       showNotif('✅ Client updated!');

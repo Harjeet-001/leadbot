@@ -27,69 +27,78 @@ export async function handleChat(request, env) {
     ? `\n\nBUSINESS KNOWLEDGE BASE:\n${client.description}\n\nUse this to answer visitor questions. If something is not in the knowledge base, say the team will follow up.`
     : '';
 
+  const leadMode = client.lead_mode !== 0; // default ON
+
+  const leadInstructions = leadMode ? `
+LEAD COLLECTION (do this naturally, not pushy):
+- After answering 1-2 questions, politely ask for their name once
+- After getting their name, ask for WhatsApp once
+- If they say NO to name or WhatsApp — accept it immediately, say "No worries!" and move on. NEVER ask again.
+- If they give both name and WhatsApp, add LEAD_CAPTURED tag
+
+Once you have BOTH name AND WhatsApp number (10+ digits), add on a new line:
+LEAD_CAPTURED:{"name":"NAME","whatsapp":"NUMBER","need":"WHAT_THEY_WANT"}
+NEVER add LEAD_CAPTURED without both. NEVER show it to user. Only once.` 
+  : `
+IMPORTANT: Do NOT ask for name, WhatsApp, phone, or any contact info. Only answer questions about the business.`;
+
   const systemPrompt = `You are a friendly AI assistant for ${client.business_name}.${knowledge}
 
-CRITICAL LANGUAGE RULE:
-- Detect the language the visitor is writing in
-- ALWAYS reply in the SAME language the visitor used
-- If they write in Hindi, reply in Hindi
-- If they write in Tamil, reply in Tamil
-- If they write in Arabic, reply in Arabic
-- If they write in English, reply in English
-- Match their language automatically in every single message
+LANGUAGE RULE: Always reply in the SAME language the visitor uses. Hindi→Hindi, Tamil→Tamil, English→English.
 
-Follow these steps in order:
-1. Greet the visitor and ask what they are looking for
-2. Answer their questions using the knowledge base
-3. Ask for their NAME (only after engaging with them)
-4. Ask for their WHATSAPP NUMBER (only after you have their name)
-5. Once you have BOTH name AND WhatsApp number confirmed, thank them
-
-CRITICAL RULES:
-- Never add LEAD_CAPTURED until visitor has given BOTH name AND WhatsApp number
-- WhatsApp number must be at least 10 digits
+CONVERSATION RULES:
 - Keep messages SHORT — 1 to 2 sentences max
 - Ask ONE question at a time
-- Be warm and human
+- Be warm, helpful, never pushy or robotic
+- If visitor says "ok", "thanks", "bye", "goodbye", "thank you", "no thanks" — give a warm closing message and stop. Do not keep asking questions.
+- If visitor seems uninterested or keeps saying no — back off immediately and offer to help with something else
 
-Once you have confirmed BOTH name AND WhatsApp number, add this on a new line at the END:
-LEAD_CAPTURED:{"name":"THEIR_NAME","whatsapp":"THEIR_WHATSAPP","need":"WHAT_THEY_WANT"}
-
-NEVER add LEAD_CAPTURED without both name and WhatsApp.
-NEVER show LEAD_CAPTURED to the user.
-Only add LEAD_CAPTURED once.`;
+${leadInstructions}`;
 
   session.messages.push({ role: 'user', content: message });
 
-  const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${GROQ_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...session.messages,
-      ],
-      max_tokens: 400,
-      temperature: 0.5,
-    }),
-  });
-
-  if (!groqRes.ok) {
-    console.error('Groq error:', await groqRes.text());
-    return json({ error: 'AI failed' }, 500);
+  let groqRes;
+  try {
+    groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...session.messages,
+        ],
+        max_tokens: 300,
+        temperature: 0.5,
+      }),
+    });
+  } catch(e) {
+    console.error('Fetch error:', e);
+    return json({ reply: 'Sorry, something went wrong. Please try again.' }, 200);
   }
 
-  const groqData = await groqRes.json();
-  const rawReply = groqData.choices[0].message.content;
+  if (!groqRes.ok) {
+    const errText = await groqRes.text();
+    console.error('Groq error:', errText);
+    return json({ reply: 'Sorry, I am having trouble responding right now. Please try again.' }, 200);
+  }
+
+  let groqData;
+  try {
+    groqData = await groqRes.json();
+  } catch(e) {
+    return json({ reply: 'Sorry, something went wrong. Please try again.' }, 200);
+  }
+
+  const rawReply = groqData.choices?.[0]?.message?.content || 'Sorry, I could not process that.';
 
   const leadMatch = rawReply.match(/LEAD_CAPTURED:(\{[^}]+\})/);
   let leadCaptured = session.leadCaptured;
 
-  if (leadMatch && !session.leadCaptured) {
+  if (leadMatch && !session.leadCaptured && leadMode) {
     try {
       const leadData = JSON.parse(leadMatch[1]);
       if (leadData.name && leadData.whatsapp && leadData.whatsapp.replace(/\D/g,'').length >= 10) {
